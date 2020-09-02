@@ -1,0 +1,12 @@
+.git/
+.vscode/
+node_modules/
+src/
+webpack.config.js
+.gitignore
+.npmignore
+.prettierrc
+.editorconfig
+tslint.json
+tsconfig.json
+*.log
