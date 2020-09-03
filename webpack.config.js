@@ -4,6 +4,7 @@ const {
     CleanWebpackPlugin
 } = require('clean-webpack-plugin') // 自动清除沉余js
 const HtmlWebpackPlugin = require('html-webpack-plugin') // 自动生成 html 插件
+const copyWebpackPlugin = require('copy-webpack-plugin'); // 打包静态资源
 
 module.exports = {
     entry: {
@@ -89,14 +90,18 @@ module.exports = {
             },
             hash: true, // 增加hash，避免缓存
         }),
+        new copyWebpackPlugin([{
+            from: __dirname + '/static', //打包的静态资源目录地址
+            to: './static' //打包到dist下面
+        }]),
         new CleanWebpackPlugin(),
     ],
     // 控制台信息
     devServer: { // 开发服务器配置
-        host:'0.0.0.0',
+        host: '0.0.0.0',
         port: 3000, // 端口号
         progress: true, // 进度条
-        https: false,
+        https: true,
         // contentBase: './static', // 服务默认指向文件夹
         inline: true, // 设置为true，当源文件改变的时候会自动刷新
         historyApiFallback: true, // 在开发单页应用时非常有用，它依赖于HTML5 history API，如果设置为true，所有的跳转将指向index.html

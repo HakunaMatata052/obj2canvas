@@ -95,3 +95,6 @@ new Poster({
 
 # 更新
 - 2020-9-1 text类型增加多行文本支持，行高属性（lineHeight）
+
+# bug反馈
+[点击这里](https://github.com/HakunaMatata052/obj2canvas)反馈bug，或push代码

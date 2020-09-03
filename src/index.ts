@@ -5,15 +5,27 @@
 // })
 import './assets/less/index.less'
 import Poster from './Poster'
-import VConsole from 'vconsole'
-new VConsole()
+// import VConsole from 'vconsole'
+// new VConsole()
 
 new Poster({
     canvas: "#canvas",
     // width: "100%",
     // height: "100%",
-    content: [
-        
+    autoRun:false,
+    success:function (canvas:HTMLCanvasElement) {
+        console.log(canvas)
+        const image: HTMLImageElement = new Image()
+        image.src = canvas.toDataURL('image/png', 1)
+        image.style.position = "absolute"
+        image.style.top = "0px"
+        image.style.left = "0px"
+        image.style.width = "100%"
+        image.style.height = "100%"
+        document.body.appendChild(image)
+        canvas.style.display = "none"
+    },
+    content: [        
         {
             type: "image",
             url: "//game.gtimg.cn/images/ulink/act/3195/a20200629my/bg9.jpg",

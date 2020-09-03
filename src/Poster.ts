@@ -1,7 +1,7 @@
 
 import toPX from 'to-px'
 
-type itemType = "image" | "text"
+type itemType = "image" | "text" | "video"
 type maskType = "circle" | "round" | "polygon"
 
 interface Option {
@@ -9,6 +9,7 @@ interface Option {
     width?: string
     height?: string
     autoRun?: boolean
+    success?: Function
     content: Array<PosterItem>
 }
 interface PosterItem {
@@ -53,19 +54,18 @@ export default class Poster {
         this.canvas = document.querySelector(option.canvas)
         this.context = this.canvas.getContext("2d")
         this.ratio = this.getPixelRatio(this.context)
-        console.log(this.ratio)
         this.setSize(option.width, option.height)
         this.create()
+        // this.render(0)
     }
     private setSize(width: string, height: string): void {
-        
-        this.canvas.width = toPX(width) || window.innerWidth
-        this.canvas.height = toPX(height) || window.innerHeight
+        const canvasWidth = toPX(width) || window.innerWidth
+        const canvasHeight = toPX(height) || window.innerHeight
 
-        this.canvas.style.width = this.canvas.width + 'px';
-        this.canvas.style.height = this.canvas.height + 'px';
-        this.canvas.width = this.canvas.width * this.ratio;
-        this.canvas.height = this.canvas.height * this.ratio;
+        this.canvas.style.width = canvasWidth + 'px';
+        this.canvas.style.height = canvasHeight + 'px';
+        this.canvas.width = canvasWidth * this.ratio;
+        this.canvas.height = canvasHeight * this.ratio;
         // 放大倍数
         this.context.scale(this.ratio, this.ratio);
     }
@@ -80,16 +80,21 @@ export default class Poster {
             }
 
         }
+        if (this.option.autoRun !== false) {
+            const image: HTMLImageElement = new Image()
+            image.src = this.canvas.toDataURL('image/png', 1)
+            image.style.position = "absolute"
+            image.style.top = "0px"
+            image.style.left = "0px"
+            image.style.width = "100%"
+            image.style.height = "100%"
+            document.body.appendChild(image)
+            this.canvas.style.display = "none"
+        }
+        if (this.option.success) {
+            this.option.success(this.canvas)
+        }
 
-        const image: HTMLImageElement = new Image()
-        image.src = this.canvas.toDataURL('image/png', 1)
-        image.style.position = "absolute"
-        image.style.top = "0px"
-        image.style.left = "0px"
-        image.style.width = "100%"
-        image.style.height = "100%"
-        document.body.appendChild(image)
-        this.canvas.style.display = "none"
     }
     private addImage(item: PosterImage): Promise<any> {
         return new Promise((res) => {
@@ -126,7 +131,6 @@ export default class Poster {
                     context.fill()
                     context.restore()
                 }
-                console.log(image.width, image.height)
                 this.context.drawImage(canvas, x, y, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
                 res(image)
             }
@@ -162,27 +166,39 @@ export default class Poster {
             this.context.fillText(line, x + align, y);
             res()
         })
-
-
     }
-    getPixelRatio(context) {
-
+    private getPixelRatio(context) {
         const backingStore = context.backingStorePixelRatio ||
-
             context.webkitBackingStorePixelRatio ||
-
             context.mozBackingStorePixelRatio ||
-
             context.msBackingStorePixelRatio ||
-
             context.oBackingStorePixelRatio ||
-
             context.backingStorePixelRatio || 1;
-
         return (window.devicePixelRatio || 1) / backingStore;
 
     }
     private setPosition(x: string, y: string, marginLeft: string = "0rem", marginTop: string = "0rem"): Position {
         return { x: toPX(x) + toPX(marginLeft), y: toPX(y) + toPX(marginTop) }
+    }
+    private render(i: number) {
+        const url = '/static/headimg'
+        if (i >= 24) {
+            i = 1
+        } else {
+            i = i + 1
+        }
+
+        console.log(i)
+        const image = new Image()
+        image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
+        image.src = url + i + '.png' + '?time=' + new Date().getTime()
+        image.onload = () => {
+            let { x, y } = this.setPosition('0rem', '50vh', '0rem', '-5.64rem')
+            // console.log(x,y)
+            this.context.drawImage(image, x, y, toPX('7.5rem'), toPX('7.5rem') / toPX('6.4rem') * toPX('9.64rem'))
+            setTimeout(() => {
+                requestAnimationFrame(() => { this.render(i) })
+            }, 30);
+        }
     }
 }
