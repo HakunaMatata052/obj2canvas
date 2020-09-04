@@ -15,23 +15,26 @@ HTML
 JS
 ```javascript
 import Poster from 'obj2canvas'
-new Poster({
+var poster = new Poster({
     canvas: "#canvas",
     // width: "100%",
     // height: "100%",
-    autoRun:false, // 是否自动生成img图片
-    success:function (canvas:HTMLCanvasElement) {  // 画布绘制完成后的回调函数，如果设置autoRun=false,可以在该回调中自行生成img图片
-        const image: HTMLImageElement = new Image()
-        image.src = canvas.toDataURL('image/png', 1)
-        image.style.position = "absolute"
-        image.style.top = "0px"
-        image.style.left = "0px"
-        image.style.width = "100%"
-        image.style.height = "100%"
-        document.body.appendChild(image)
-        canvas.style.display = "none"
+    success:function (canvas) {  // 如果传入成功回调，则不会自动生成img图片，而是将canvas作为success回调会返回,方便后期做处理
+        console.log(canvas)        
+        // const image: HTMLImageElement = new Image()
+        // image.src = canvas.toDataURL('image/png', 1)
+        // image.style.position = "absolute"
+        // image.style.top = "0px"
+        // image.style.left = "0px"
+        // image.style.width = "100%"
+        // image.style.height = "100%"
+        // document.body.appendChild(image)
+        // canvas.style.display = "none"
     },
-    content: [               
+    createdGif:function(base64){  // 如果传入GIF生成成功的回调，则不会自动生成gif图片，而是将图片base64作为success回调会返回c,方便后期做处理
+        console.log(base64)
+    },
+    content: [   // 画布内容，数组下标越大层级越高          
         {
             type: "image",  //图片类型
             url: "/bg9.jpg",  //图片地址(支持跨域)
@@ -89,6 +92,16 @@ new Poster({
             width:"3rem",
             height:"6.64rem",
             num:10    //序列帧的总数
+        },
+        
+        {
+            type:"video", // 视频类型
+            url:"/static/video.mp4", //视频地址
+            autoPlay:true, //视频是否自动播放
+            top:"5vw",
+            left:"1vh",
+            width:"7.5rem",
+            height:"3.2rem"
         }
     ]
 })
@@ -104,7 +117,17 @@ poster.isFinish
 poster.creatGif(15,"5rem")
 ```
 使用该方法可生成gif动图，第一个参数是动图的帧数，第二个参数是gif的宽度（不建议超过7.5rem）宽度越大生成时间越长，过大会导致生成失败，建议3-7.5rem
-
+```js
+    poster.addVideo({
+        type: "video",
+        url: "/static/video.mp4",
+        top: "30vh",
+        left: "0rem",
+        width: "7.5rem",
+        height: "3.2rem"
+    })
+```
+该方法可传入一个视频对象，用于不支持自动播放的游览器（如ios），需要使用按钮触发该事件来播放
 
 # 关于居中
 由于需要生成移动端的海报，所以一般都是整平的，这时就需要设置居中
@@ -122,6 +145,9 @@ poster.creatGif(15,"5rem")
 ```
 元素居中与背景类似，`top`设置`50vh`,`marginTop`设置正值则是元素从垂直中点的位置向下的位移，负值相反
 水平居中同理`left`设置`50vw`即50%的宽度,`marginLeft`设置正值则是元素从水平中点的位置向右的位移，负值相反
+
+# 注意
+动图不受层级影响，始终最高层级
 
 # 更新
 - 2020-9-1 text类型增加多行文本支持，行高属性（lineHeight）

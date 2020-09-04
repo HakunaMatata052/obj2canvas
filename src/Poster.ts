@@ -1,4 +1,4 @@
-import * as toPX from 'to-px'
+import toPX from 'to-px'
 import GIF from './gif.js'
 
 type itemType = "image" | "text" | "video" | "gif"
@@ -10,8 +10,8 @@ interface Option {
     canvas: string
     width?: string
     height?: string
-    autoRun?: boolean
     success?: Function
+    createdGif?: Function
     content: Array<PosterItem>
 }
 interface PosterItem {
@@ -47,6 +47,14 @@ interface PosterImage extends PosterItem {
         radius?: string
     }
 }
+interface PosterVideo extends PosterItem {
+    url?: string
+    autoPlay?: boolean
+    width?: string
+    height?: string
+    marginLeft?: string
+    marginTop?: string
+}
 
 export default class Poster {
     private canvas: HTMLCanvasElement
@@ -56,13 +64,22 @@ export default class Poster {
     private gif: GIF
     private gifList: HTMLCanvasElement[]
     public isFinish: boolean
+    private imageList: HTMLImageElement[]
+    private gifIsFinish: boolean
+    private cacheCanvas: HTMLCanvasElement
+    private cacheCanvasCxt: CanvasRenderingContext2D
     constructor(option: Option) {
         this.gifList = []
+        this.imageList = []
         this.isFinish = false
+        this.gifIsFinish = true
         this.option = option
         this.canvas = document.querySelector(option.canvas)
         this.context = this.canvas.getContext("2d")
-        this.ratio = this.getPixelRatio(this.context)
+        // 缓冲区
+        this.cacheCanvas = document.createElement('canvas')
+        this.cacheCanvasCxt = this.cacheCanvas.getContext("2d")
+        this.ratio = 1
         this.setSize(option.width, option.height)
         this.create()
     }
@@ -73,8 +90,13 @@ export default class Poster {
         this.canvas.style.height = canvasHeight + 'px';
         this.canvas.width = canvasWidth * this.ratio;
         this.canvas.height = canvasHeight * this.ratio;
-        // 放大倍数
         this.context.scale(this.ratio, this.ratio);
+        // 设置缓冲区大小        
+        this.cacheCanvas.style.width = canvasWidth + 'px';
+        this.cacheCanvas.style.height = canvasHeight + 'px';
+        this.cacheCanvas.width = canvasWidth * this.ratio;
+        this.cacheCanvas.height = canvasHeight * this.ratio;
+        this.cacheCanvasCxt.scale(this.ratio, this.ratio);
     }
     private async create(): Promise<any> {
         for (let i = 0; i < this.option.content.length; i++) {
@@ -82,13 +104,18 @@ export default class Poster {
             if (item.type === 'image') {
                 await this.addImage(item)
             } else if (item.type === 'gif') {
-                await this.render(item.url, item.num, 0)
+                await this.render(item, 0)
             } else if (item.type === 'text') {
                 await this.addText(item)
+            } else if (item.type === 'video') {
+                await this.addVideo(item)
             }
         }
+        this.context.drawImage(this.cacheCanvas, 0, 0, this.cacheCanvas.width, this.cacheCanvas.height)
         this.isFinish = true
-        if (this.option.autoRun !== false) {
+        if (this.option.success) {
+            this.option.success(this.canvas)
+        } else {
             const image: HTMLImageElement = new Image()
             image.src = this.canvas.toDataURL('image/png', 1)
             image.style.position = "absolute"
@@ -98,10 +125,6 @@ export default class Poster {
             image.style.height = "100%"
             document.body.appendChild(image)
             this.canvas.style.display = "none"
-
-        }
-        if (this.option.success) {
-            this.option.success(this.canvas)
         }
     }
     private addImage(item: PosterImage): Promise<any> {
@@ -113,8 +136,8 @@ export default class Poster {
             image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
             image.src = item.url + '?time=' + new Date().getTime()
             image.onload = () => {
-                canvas.width = toPX(item.width)
-                canvas.height = toPX(item.height)
+                canvas.width = toPX(item.width) * this.ratio;
+                canvas.height = toPX(item.height) * this.ratio;
                 context.drawImage(image, 0, 0, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
                 if (item.mask && item.mask.type === "round") {
                     context.globalCompositeOperation = "destination-in"
@@ -139,7 +162,7 @@ export default class Poster {
                     context.fill()
                     context.restore()
                 }
-                this.context.drawImage(canvas, x, y, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
+                this.cacheCanvasCxt.drawImage(canvas, x, y, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
                 res(image)
             }
         })
@@ -147,9 +170,9 @@ export default class Poster {
     private addText(item: PosterText): Promise<any> {
         return new Promise((res) => {
             let { x, y } = this.setPosition(item.left, item.top, item.marginLeft, item.marginTop)
-            this.context.font = (item.fontWeight || 'normal') + ' ' + toPX(item.fontSize) + 'px 微软雅黑 '
-            this.context.fillStyle = item.color
-            this.context.textAlign = item.align || "left"
+            this.cacheCanvasCxt.font = (item.fontWeight || 'normal') + ' ' + toPX(item.fontSize) + 'px 微软雅黑 '
+            this.cacheCanvasCxt.fillStyle = item.color
+            this.cacheCanvasCxt.textAlign = item.align || "left"
             let align = 0
             if (item.align === "center") {
                 align = toPX(item.width) || window.innerWidth / 2
@@ -161,21 +184,43 @@ export default class Poster {
             let line = '';
             for (let n = 0; n < arrText.length; n++) {
                 let testLine = line + arrText[n];
-                let metrics = this.context.measureText(testLine);
+                let metrics = this.cacheCanvasCxt.measureText(testLine);
                 let testWidth = metrics.width;
                 if (testWidth > maxWidth && n > 0) {
-                    this.context.fillText(line, x + align, y);
+                    this.cacheCanvasCxt.fillText(line, x + align, y);
                     line = arrText[n];
                     y += toPX(item.lineHeight);
                 } else {
                     line = testLine;
                 }
             }
-            this.context.fillText(line, x + align, y);
+            this.cacheCanvasCxt.fillText(line, x + align, y);
             res()
         })
     }
-    private getPixelRatio(context) {
+    public addVideo(item: PosterVideo): Promise<any> {
+        return new Promise(res => {
+            let { x, y } = this.setPosition(item.left, item.top, item.marginLeft, item.marginTop)
+            // const video = document.querySelector('video')
+            const video = document.createElement('video')
+            video.src = item.url
+            video.loop = true
+            video.setAttribute('playsinline', '')
+            console.log(item.autoPlay)
+            if (item.autoPlay) {
+                document.addEventListener("WeixinJSBridgeReady", ()=> {
+                    video.play();
+                }, false);
+                video.play();
+            }
+            setInterval(() => {
+                this.cacheCanvasCxt.drawImage(video, x, y, toPX(item.width), toPX(item.height));//绘制视频
+            }, 10);
+
+            res()
+        })
+    }
+    public getPixelRatio(context) {
         const backingStore = context.backingStorePixelRatio ||
             context.webkitBackingStorePixelRatio ||
             context.mozBackingStorePixelRatio ||
@@ -187,25 +232,43 @@ export default class Poster {
     private setPosition(x: string, y: string, marginLeft: string = "0rem", marginTop: string = "0rem"): Position {
         return { x: toPX(x) + toPX(marginLeft), y: toPX(y) + toPX(marginTop) }
     }
-    private render(url: string, num: number, i: number) {
+    private render(item, i: number) {
         return new Promise((res) => {
             if (i >= 24) {
                 i = 0
             }
-            const image = new Image()
-            image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
-            image.src = url.replace('{i}', String(i)) // + '?time=' + new Date().getTime()
-            image.onload = () => {
-                let { x, y } = this.setPosition('20vw', '62vh')
-                this.context.drawImage(image, x, y, toPX('3rem'), toPX('3rem') / toPX('5.07rem') * toPX('6.64rem'))
+            // this.context.save();            
+            const { x, y } = this.setPosition(item.left, item.top, item.marginLeft, item.marginTop)
+            let image: HTMLImageElement
+            if (this.imageList[i]) {
+                image = this.imageList[i]
+
+                this.context.clearRect(0, 0, this.canvas.width + 1, this.canvas.height + 1)
+                this.context.drawImage(this.cacheCanvas, 0, 0, this.canvas.width, this.canvas.height)
+                this.context.drawImage(image, x, y, toPX(item.width), toPX(item.height))
                 setTimeout(() => {
                     i++
-                    requestAnimationFrame(() => { this.render(url, num, i) })
+                    requestAnimationFrame(() => { this.render(item, i) })
                     res()
                 }, 30);
+            } else {
+                image = new Image()
+                image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
+                image.src = item.url.replace('{i}', String(i)) // + '?time=' + new Date().getTime()
+                this.imageList.push(image)
+                image.onload = () => {
+
+                    this.context.clearRect(0, 0, this.canvas.width + 1, this.canvas.height + 1)
+                    this.context.drawImage(this.cacheCanvas, 0, 0, this.canvas.width, this.canvas.height)
+                    this.context.drawImage(image, x, y, toPX(item.width), toPX(item.height))
+                    setTimeout(() => {
+                        i++
+                        requestAnimationFrame(() => { this.render(item, i) })
+                        res()
+                    }, 30);
+                }
             }
         })
-
     }
     public async creatGif(num: number, imgWidth: string = '7.5rem') {
         if (!this.isFinish) {
@@ -219,6 +282,10 @@ export default class Poster {
             }
             return
         }
+        if (!this.gifIsFinish) {
+            return
+        }
+        this.gifIsFinish = false
         const typeGif = this.option.content.filter(item => item.type === 'gif')
         if (typeGif.length !== 0) {
             await this.photograph()
@@ -267,18 +334,23 @@ export default class Poster {
                         ulink.Dialog.hideLoading()
                     }
                     const base64 = await this.blobToBase64(blob)
-                    const image: HTMLImageElement = new Image()
-                    image.src = String(base64)
-                    image.style.position = "absolute"
-                    image.style.border = "5px solid #fff"
-                    image.style.borderRadius = "3px"
-                    image.style.bottom = "0"
-                    image.style.right = "0"
-                    image.style.width = "50%"
-                    image.style.height = "50%"
-                    image.style.marginLeft = -(image.width / 2) + 'px'
-                    image.style.marginTop = -(image.height / 2) + 'px'
-                    document.body.appendChild(image)
+                    this.gifIsFinish = true
+                    if (this.option.createdGif) {
+                        this.option.createdGif(base64)
+                    } else {
+                        const image: HTMLImageElement = new Image()
+                        image.src = String(base64)
+                        image.style.position = "absolute"
+                        image.style.border = "5px solid #fff"
+                        image.style.borderRadius = "3px"
+                        image.style.bottom = "0"
+                        image.style.right = "0"
+                        image.style.width = "50%"
+                        image.style.height = "50%"
+                        image.style.marginLeft = -(image.width / 2) + 'px'
+                        image.style.marginTop = -(image.height / 2) + 'px'
+                        document.body.appendChild(image)
+                    }
                 });
                 this.gif.render();
             })

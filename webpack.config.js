@@ -99,7 +99,7 @@ module.exports = {
     // 控制台信息
     devServer: { // 开发服务器配置
         host: '0.0.0.0',
-        port: 3000, // 端口号
+        // port: 3000, // 端口号
         progress: true, // 进度条
         // https: true,
         // contentBase: './static', // 服务默认指向文件夹
