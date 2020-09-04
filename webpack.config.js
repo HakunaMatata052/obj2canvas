@@ -101,7 +101,7 @@ module.exports = {
         host: '0.0.0.0',
         port: 3000, // 端口号
         progress: true, // 进度条
-        https: true,
+        // https: true,
         // contentBase: './static', // 服务默认指向文件夹
         inline: true, // 设置为true，当源文件改变的时候会自动刷新
         historyApiFallback: true, // 在开发单页应用时非常有用，它依赖于HTML5 history API，如果设置为true，所有的跳转将指向index.html

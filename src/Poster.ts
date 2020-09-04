@@ -1,8 +1,10 @@
+import * as toPX from 'to-px'
+import GIF from './gif.js'
 
-import toPX from 'to-px'
-
-type itemType = "image" | "text" | "video"
+type itemType = "image" | "text" | "video" | "gif"
 type maskType = "circle" | "round" | "polygon"
+
+let ulink: any = (<any>window).ulink  // 强制类型转换
 
 interface Option {
     canvas: string
@@ -15,7 +17,8 @@ interface Option {
 interface PosterItem {
     type: itemType
     top: string
-    left: string
+    left: string,
+    num?: number
     [propName: string]: any
 }
 
@@ -44,24 +47,28 @@ interface PosterImage extends PosterItem {
         radius?: string
     }
 }
+
 export default class Poster {
     private canvas: HTMLCanvasElement
     private context: CanvasRenderingContext2D
     private option: Option
     private ratio: number
+    private gif: GIF
+    private gifList: HTMLCanvasElement[]
+    public isFinish: boolean
     constructor(option: Option) {
+        this.gifList = []
+        this.isFinish = false
         this.option = option
         this.canvas = document.querySelector(option.canvas)
         this.context = this.canvas.getContext("2d")
         this.ratio = this.getPixelRatio(this.context)
         this.setSize(option.width, option.height)
         this.create()
-        // this.render(0)
     }
     private setSize(width: string, height: string): void {
         const canvasWidth = toPX(width) || window.innerWidth
         const canvasHeight = toPX(height) || window.innerHeight
-
         this.canvas.style.width = canvasWidth + 'px';
         this.canvas.style.height = canvasHeight + 'px';
         this.canvas.width = canvasWidth * this.ratio;
@@ -70,16 +77,17 @@ export default class Poster {
         this.context.scale(this.ratio, this.ratio);
     }
     private async create(): Promise<any> {
-
         for (let i = 0; i < this.option.content.length; i++) {
             const item = this.option.content[i]
             if (item.type === 'image') {
                 await this.addImage(item)
-            } else {
+            } else if (item.type === 'gif') {
+                await this.render(item.url, item.num, 0)
+            } else if (item.type === 'text') {
                 await this.addText(item)
             }
-
         }
+        this.isFinish = true
         if (this.option.autoRun !== false) {
             const image: HTMLImageElement = new Image()
             image.src = this.canvas.toDataURL('image/png', 1)
@@ -90,11 +98,11 @@ export default class Poster {
             image.style.height = "100%"
             document.body.appendChild(image)
             this.canvas.style.display = "none"
+
         }
         if (this.option.success) {
             this.option.success(this.canvas)
         }
-
     }
     private addImage(item: PosterImage): Promise<any> {
         return new Promise((res) => {
@@ -175,30 +183,140 @@ export default class Poster {
             context.oBackingStorePixelRatio ||
             context.backingStorePixelRatio || 1;
         return (window.devicePixelRatio || 1) / backingStore;
-
     }
     private setPosition(x: string, y: string, marginLeft: string = "0rem", marginTop: string = "0rem"): Position {
         return { x: toPX(x) + toPX(marginLeft), y: toPX(y) + toPX(marginTop) }
     }
-    private render(i: number) {
-        const url = '/static/headimg'
-        if (i >= 24) {
-            i = 1
-        } else {
-            i = i + 1
-        }
+    private render(url: string, num: number, i: number) {
+        return new Promise((res) => {
+            if (i >= 24) {
+                i = 0
+            }
+            const image = new Image()
+            image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
+            image.src = url.replace('{i}', String(i)) // + '?time=' + new Date().getTime()
+            image.onload = () => {
+                let { x, y } = this.setPosition('20vw', '62vh')
+                this.context.drawImage(image, x, y, toPX('3rem'), toPX('3rem') / toPX('5.07rem') * toPX('6.64rem'))
+                setTimeout(() => {
+                    i++
+                    requestAnimationFrame(() => { this.render(url, num, i) })
+                    res()
+                }, 30);
+            }
+        })
 
-        console.log(i)
-        const image = new Image()
-        image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
-        image.src = url + i + '.png' + '?time=' + new Date().getTime()
-        image.onload = () => {
-            let { x, y } = this.setPosition('0rem', '50vh', '0rem', '-5.64rem')
-            // console.log(x,y)
-            this.context.drawImage(image, x, y, toPX('7.5rem'), toPX('7.5rem') / toPX('6.4rem') * toPX('9.64rem'))
-            setTimeout(() => {
-                requestAnimationFrame(() => { this.render(i) })
-            }, 30);
+    }
+    public async creatGif(num: number, imgWidth: string = '7.5rem') {
+        if (!this.isFinish) {
+            if (ulink) {
+                ulink.toast({
+                    content: "画布未加载完成",  //toast展示的文案
+                    duration: 3000,  //toast展示时长，单位毫秒（ms）
+                });
+            } else {
+                alert('画布未加载完成')
+            }
+            return
         }
+        const typeGif = this.option.content.filter(item => item.type === 'gif')
+        if (typeGif.length !== 0) {
+            await this.photograph()
+            if (ulink) {
+                ulink.Dialog.showLoading()
+            }
+            const width = toPX(imgWidth)
+            const height = width / this.canvas.width * this.canvas.height
+            this.gif = new GIF({
+                workers: 2,
+                quality: 1,
+                width,
+                height
+            })
+            let promiseList = []
+            for (let i = 0; i < num; i++) {
+                let img = new Image()
+                img.src = this.canvas.toDataURL('image/png', 1)
+                const canvas = document.createElement('canvas')
+                const context = canvas.getContext('2d')
+                canvas.width = width
+                canvas.height = height
+                let work = () => {
+                    return new Promise(res => {
+                        img.onload = () => {
+                            context.drawImage(img, 0, 0, img.width, img.height, 0, 0, width, height)
+                            this.gifList.push(canvas)
+                            res(canvas)
+                        }
+                    })
+                }
+                let p = work()
+                promiseList.push(p)
+                await new Promise(res => {
+                    setTimeout(() => {
+                        res()
+                    }, 200)
+                })
+            }
+            Promise.all(promiseList).then(() => {
+                this.gifList.forEach(item => {
+                    this.gif.addFrame(item, { delay: 200 })
+                })
+                this.gif.on('finished', async (blob: Blob) => {
+                    if (ulink) {
+                        ulink.Dialog.hideLoading()
+                    }
+                    const base64 = await this.blobToBase64(blob)
+                    const image: HTMLImageElement = new Image()
+                    image.src = String(base64)
+                    image.style.position = "absolute"
+                    image.style.border = "5px solid #fff"
+                    image.style.borderRadius = "3px"
+                    image.style.bottom = "0"
+                    image.style.right = "0"
+                    image.style.width = "50%"
+                    image.style.height = "50%"
+                    image.style.marginLeft = -(image.width / 2) + 'px'
+                    image.style.marginTop = -(image.height / 2) + 'px'
+                    document.body.appendChild(image)
+                });
+                this.gif.render();
+            })
+        }
+    }
+    private blobToBase64(blob: Blob) {
+        return new Promise((resolve, reject) => {
+            const fileReader = new FileReader();
+            fileReader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            // readAsDataURL
+            fileReader.readAsDataURL(blob);
+            fileReader.onerror = () => {
+                reject(new Error('blobToBase64 error'));
+            };
+        })
+    }
+    private photograph() {
+        return new Promise((res) => {
+            const div: HTMLElement = document.createElement('div')
+            div.style.position = "absolute"
+            div.style.top = "0px"
+            div.style.left = "0px"
+            div.style.width = "100%"
+            div.style.height = "100%"
+            div.style.backgroundColor = '#fff'
+            document.body.appendChild(div)
+            let opacity = 1
+            let timer = setInterval(() => {
+                if (opacity <= 0) {
+                    document.body.removeChild(div)
+                    clearInterval(timer)
+                    res()
+                }
+                div.style.opacity = String(opacity)
+                opacity = opacity - 0.1
+            }, 50)
+        })
     }
 }

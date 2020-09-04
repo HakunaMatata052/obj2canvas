@@ -10,7 +10,7 @@
     //   "declarationDir": "./dist/types/",// 声明文件打包的位置
       "declarationMap": false,// 是否生成声明文件map文件（便于调试）
       "moduleResolution": "node",
-      "module": "esnext",
+      "module": "commonjs",
       "target": "es5",// 转化成的目标语言
       "baseUrl": "./",
       "types": [
@@ -23,7 +23,6 @@
         "dom",
         "es2015"
       ],
-      "jsx": "react",
       "allowJs": false
     },
     "include": [

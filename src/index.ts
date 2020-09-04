@@ -1,29 +1,23 @@
-// import Poster from 'obj2canvas'
-// new Poster({
-//     canvas:'#canvas',
-//     content:[]
-// })
 import './assets/less/index.less'
 import Poster from './Poster'
 // import VConsole from 'vconsole'
 // new VConsole()
-
-new Poster({
+const poster = new Poster({
     canvas: "#canvas",
     // width: "100%",
     // height: "100%",
     autoRun:false,
     success:function (canvas:HTMLCanvasElement) {
-        console.log(canvas)
-        const image: HTMLImageElement = new Image()
-        image.src = canvas.toDataURL('image/png', 1)
-        image.style.position = "absolute"
-        image.style.top = "0px"
-        image.style.left = "0px"
-        image.style.width = "100%"
-        image.style.height = "100%"
-        document.body.appendChild(image)
-        canvas.style.display = "none"
+        // console.log(canvas)        
+        // const image: HTMLImageElement = new Image()
+        // image.src = canvas.toDataURL('image/png', 1)
+        // image.style.position = "absolute"
+        // image.style.top = "0px"
+        // image.style.left = "0px"
+        // image.style.width = "100%"
+        // image.style.height = "100%"
+        // document.body.appendChild(image)
+        // canvas.style.display = "none"
     },
     content: [        
         {
@@ -76,6 +70,19 @@ new Poster({
                 point:[["0rem","0rem"],["1.29rem","0rem"],["0rem","1.29rem"]]
             }
         },
+        {
+            type:"gif",
+            url:"/static/{i}.png",
+            top:"20vw",
+            left:"62vh",
+            width:"3rem",
+            height:"6.64rem",
+            num:10
+        }
 
     ]
+})
+
+document.getElementById('gif').addEventListener('click',()=>{
+    poster.creatGif(15,"5rem")
 })
