@@ -77,7 +77,7 @@ const poster = new Poster({
             type: "video",
             url: "/static/video.mp4",
             autoPlay:true,
-            top: "30vh",
+            top: "30%",
             left: "0rem",
             width: "7.5rem",
             height: "3.2rem"
@@ -89,7 +89,7 @@ const poster = new Poster({
             left: "62vw",
             width: "3rem",
             height: "3.9rem",
-            num: 10
+            num: 33
         },
     ]
 })

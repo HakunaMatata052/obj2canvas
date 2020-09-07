@@ -38,11 +38,11 @@ var poster = new Poster({
         {
             type: "image",  //图片类型
             url: "/bg9.jpg",  //图片地址(支持跨域)
-            top: "50vh",   //相对于canvas顶部的距离  （支持rem，vh,vw,不支持百分比）
-            left: "0",      //相对于canvas左边的距离  （支持rem，vh,vw,不支持百分比）
-            width: "7.5rem",    //图片宽度 （支持rem，vh,vw,不支持百分比）
-            height: "16.20rem", //图片高度 （支持rem，vh,vw,不支持百分比）
-            marginTop: "-8.1rem", //图片相对于canvas的上外边距 （支持rem，vh,vw,不支持百分比）
+            top: "50vh",   //相对于canvas顶部的距离  
+            left: "0",      //相对于canvas左边的距离  
+            width: "7.5rem",    //图片宽度 
+            height: "16.20rem", //图片高度 
+            marginTop: "-8.1rem", //图片相对于canvas的上外边距 
         },
         {
             type: "image",
@@ -51,7 +51,7 @@ var poster = new Poster({
             left: "50vw",
             width: "1.29rem",
             height: "1.29rem",
-            marginLeft: "-2.77rem", //图片相对于canvas的左外边距 （支持rem，vh,vw,不支持百分比）
+            marginLeft: "-2.77rem", //图片相对于canvas的左外边距 
             marginTop: "4.25rem",
             mask: {
                 type: "circle" //圆形遮罩方式（circle | polygon）
@@ -151,6 +151,7 @@ poster.creatGif(15,"5rem")
 
 # 更新
 - 2020-9-1 text类型增加多行文本支持，行高属性（lineHeight）
+- 2020-9-7 单位支持百分比
 
 # bug反馈
 [点击这里](https://github.com/HakunaMatata052/obj2canvas)反馈bug，或push代码

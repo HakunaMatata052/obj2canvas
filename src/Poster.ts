@@ -136,15 +136,15 @@ export default class Poster {
             image.setAttribute("crossOrigin", 'Anonymous')  //' 必须在src赋值钱执行！！！！！！
             image.src = item.url + '?time=' + new Date().getTime()
             image.onload = () => {
-                canvas.width = toPX(item.width) * this.ratio;
-                canvas.height = toPX(item.height) * this.ratio;
-                context.drawImage(image, 0, 0, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
+                canvas.width = toPX(item.width.replace('%','vw')) * this.ratio;
+                canvas.height = toPX(item.height.replace('%','vh')) * this.ratio;
+                context.drawImage(image, 0, 0, toPX(item.width.replace('%','vw')), toPX(item.height.replace('%','vh')))   // 改变图片大小到1080*980
                 if (item.mask && item.mask.type === "round") {
                     context.globalCompositeOperation = "destination-in"
                     context.fillRect(0, 0, 50, 50)
                 } else if (item.mask && item.mask.type === "circle") {
                     context.globalCompositeOperation = "destination-in"
-                    context.arc(toPX(item.width) / 2, toPX(item.width) / 2, toPX(item.width) / 2, 0, Math.PI * 2, true);
+                    context.arc(toPX(item.width.replace('%','vw')) / 2, toPX(item.width.replace('%','vw')) / 2, toPX(item.width.replace('%','vw')) / 2, 0, Math.PI * 2, true);
                     context.fill();
                 } else if (item.mask && item.mask.type === "polygon") {
                     context.globalCompositeOperation = "destination-in"
@@ -162,7 +162,7 @@ export default class Poster {
                     context.fill()
                     context.restore()
                 }
-                this.cacheCanvasCxt.drawImage(canvas, x, y, toPX(item.width), toPX(item.height))   // 改变图片大小到1080*980
+                this.cacheCanvasCxt.drawImage(canvas, x, y, toPX(item.width.replace('%','vw')), toPX(item.height.replace('%','vh')))   // 改变图片大小到1080*980
                 res(image)
             }
         })
@@ -175,11 +175,11 @@ export default class Poster {
             this.cacheCanvasCxt.textAlign = item.align || "left"
             let align = 0
             if (item.align === "center") {
-                align = toPX(item.width) || window.innerWidth / 2
+                align = toPX(item.width&&item.width.replace('%','vw')) || window.innerWidth / 2
             } else if (item.align === "right") {
-                align = toPX(item.width) || window.innerWidth
+                align = toPX(item.width&&item.width.replace('%','vw')) || window.innerWidth
             }
-            const maxWidth = toPX(item.width) || window.innerWidth
+            const maxWidth = toPX(item.width&&item.width.replace('%','vw')) || window.innerWidth
             let arrText = item.text.split('');
             let line = '';
             for (let n = 0; n < arrText.length; n++) {
@@ -214,7 +214,7 @@ export default class Poster {
                 video.play();
             }
             setInterval(() => {
-                this.cacheCanvasCxt.drawImage(video, x, y, toPX(item.width), toPX(item.height));//绘制视频
+                this.cacheCanvasCxt.drawImage(video, x, y, toPX(item.width.replace('%','vw')), toPX(item.height.replace('%','vh')));//绘制视频
             }, 10);
 
             res()
@@ -230,7 +230,7 @@ export default class Poster {
         return (window.devicePixelRatio || 1) / backingStore;
     }
     private setPosition(x: string, y: string, marginLeft: string = "0rem", marginTop: string = "0rem"): Position {
-        return { x: toPX(x) + toPX(marginLeft), y: toPX(y) + toPX(marginTop) }
+        return { x: toPX(x.replace('%','vw')) + toPX(marginLeft.replace('%','vw')), y: toPX(y.replace('%','vh')) + toPX(marginTop.replace('%','vh')) }
     }
     private render(item, i: number) {
         return new Promise((res) => {
@@ -245,7 +245,7 @@ export default class Poster {
 
                 this.context.clearRect(0, 0, this.canvas.width + 1, this.canvas.height + 1)
                 this.context.drawImage(this.cacheCanvas, 0, 0, this.canvas.width, this.canvas.height)
-                this.context.drawImage(image, x, y, toPX(item.width), toPX(item.height))
+                this.context.drawImage(image, x, y, toPX(item.width.replace('%','vw')), toPX(item.height.replace('%','vh')))
                 setTimeout(() => {
                     i++
                     requestAnimationFrame(() => { this.render(item, i) })
@@ -260,7 +260,7 @@ export default class Poster {
 
                     this.context.clearRect(0, 0, this.canvas.width + 1, this.canvas.height + 1)
                     this.context.drawImage(this.cacheCanvas, 0, 0, this.canvas.width, this.canvas.height)
-                    this.context.drawImage(image, x, y, toPX(item.width), toPX(item.height))
+                    this.context.drawImage(image, x, y, toPX(item.width.replace('%','vw')), toPX(item.height.replace('%','vh')))
                     setTimeout(() => {
                         i++
                         requestAnimationFrame(() => { this.render(item, i) })
